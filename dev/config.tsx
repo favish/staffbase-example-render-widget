@@ -11,7 +11,7 @@
  * limitations under the License.
  */
 
-import { ExternalBlockDefinition } from "widget-sdk";
+import { ExternalBlockDefinition } from "@staffbase/widget-sdk";
 import { configurationSchema, uiSchema } from "../src/configuration-schema";
 import React, { FC } from "react";
 import Form from "@rjsf/mui";

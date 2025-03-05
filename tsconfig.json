@@ -1,23 +1,34 @@
 {
   "compilerOptions": {
-    "outDir": "./dist/",
-    "sourceMap": false,
-    "noImplicitAny": true,
-    "module": "commonjs",
-    "target": "esnext",
+    "allowSyntheticDefaultImports": true,
+    "downlevelIteration": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "incremental": true,
+    "isolatedModules": true,
     "jsx": "react",
-    "strict": true,
+    "lib": ["dom", "dom.iterable", "esnext", "ES2015", "es6"],
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmit": true,
+    "noImplicitAny": true,
+    "noUnusedLocals": true,
+    "outDir": "./dist/",
+    "paths": {
+      "@/*": ["./src/*"],
+      "widget-sdk": ["../node_modules/@staffbase/widget-sdk"]
+    },
+    "plugins": [],
+    "resolveJsonModule": true,
+    "rootDir": ".",
     "skipDefaultLibCheck": true,
     "skipLibCheck": true,
-    "moduleResolution": "node",
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "baseUrl": "src",
-    "rootDir": ".",
-    "paths": {
-      "widget-sdk": ["../node_modules/@staffbase/widget-sdk"]
-    }
+    "sourceMap": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "target": "esnext",
+    "typeRoots": ["./@types", "./node_modules/@types"]
   },
-  "include": ["src/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*", "file-upload/**/*"],
+  "exclude": ["node_modules", "dist", "dev"]
 }

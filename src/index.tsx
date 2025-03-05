@@ -14,7 +14,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 
-import { BlockFactory, BlockDefinition, ExternalBlockDefinition, BaseBlock } from "widget-sdk";
+import { BlockFactory, BlockDefinition, ExternalBlockDefinition, BaseBlock } from "@staffbase/widget-sdk";
 import { StaffbaseExampleRenderWidgetProps, StaffbaseExampleRenderWidget } from "./staffbase-example-render-widget";
 import { configurationSchema, uiSchema } from "./configuration-schema";
 import icon from "../resources/staffbase-example-render-widget.svg";
@@ -24,8 +24,10 @@ import pkg from '../package.json'
  * Define which attributes are handled by the widget. This should be also reflected in configuration schema
  */
 const widgetAttributes: string[] = [
-  'message',
+  'channel',
 ];
+
+console.info('Test Render Widget - Build Date:', process.env.REACT_APP_BUILD_DATE)
 
 /**
  * This factory creates the class which is registered with the tagname in the `custom element registry`
@@ -33,7 +35,7 @@ const widgetAttributes: string[] = [
  */
 const factory: BlockFactory = (BaseBlockClass, _widgetApi) => {
   /**
-   *  <staffbase-example-render-widget message="world!"></staffbase-example-render-widget>
+   *  <staffbase-example-render-widget channel="test"></staffbase-example-render-widget>
    */
   return class StaffbaseExampleRenderWidgetBlock extends BaseBlockClass implements BaseBlock {
     private _root: ReactDOM.Root | null = null;

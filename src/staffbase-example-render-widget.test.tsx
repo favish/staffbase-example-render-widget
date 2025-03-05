@@ -5,7 +5,7 @@ import {StaffbaseExampleRenderWidget} from "./staffbase-example-render-widget";
 
 describe("StaffbaseExampleRenderWidget", () => {
     it("should render the component", () => {
-        render(<StaffbaseExampleRenderWidget contentLanguage="en_US" message="World"/>);
+        render(<StaffbaseExampleRenderWidget contentLanguage="en_US" channel="test"/>);
 
         expect(screen.getByText(/Hello World/)).toBeInTheDocument();
     })

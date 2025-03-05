@@ -13,6 +13,7 @@
 
 import { UiSchema } from "@rjsf/utils";
 import { JSONSchema7 } from "json-schema";
+import SelectChannel from "./components/config/SelectChannel";
 
 /**
  * schema used for generation of the configuration dialog
@@ -20,11 +21,12 @@ import { JSONSchema7 } from "json-schema";
  */
 export const configurationSchema: JSONSchema7 = {
   properties: {
-    message: {
+    channel: {
       type: "string",
-      title: "message",
+      title: "Channel",
     },
   },
+  required: ["channel"],
 };
 
 /**
@@ -32,7 +34,8 @@ export const configurationSchema: JSONSchema7 = {
  * @see https://rjsf-team.github.io/react-jsonschema-form/docs/api-reference/uiSchema
  */
 export const uiSchema: UiSchema = {
-  message: {
-    "ui:help": "Please enter a message to show",
+  channel: {
+    "ui:widget": SelectChannel,
+    "ui:help": "Select the channel to display the content",
   },
 };
