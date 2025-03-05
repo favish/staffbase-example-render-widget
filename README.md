@@ -20,6 +20,10 @@ $ yarn install
 | `yarn run lint`             | Checks the codebase on style issues                        |
 | `yarn run lint:fix`         | Fixes style issues in the codebase                         |
 
+## Config your API endpoint
+
+Copy .env.example to .env and modify the `REACT_APP_API_URL` variable with your API endpoint
+
 ## Dynamic Content Rendering and React Hooks in Config Widgets
 
 ### Dynamic Content Rendering
@@ -78,7 +82,7 @@ There is no available documentation addressing this behavior, leaving us uncerta
 
 #### Steps to Reproduce
 
-1. Set the environment variable `REACT_APP_ENABLE_PROBLEMATIC_SELECT_EXAMPLE` to `true`.
+1. Inside the .env file, set the environment variable `REACT_APP_ENABLE_PROBLEMATIC_SELECT_EXAMPLE` to `true`.
 2. Build and upload the widget to Staffbase.
 3. Attempt to open the widget settings:
    - **Result**: A fatal error occurs, and the configuration interface fails to load.
