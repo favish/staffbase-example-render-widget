@@ -1,21 +1,15 @@
-import React, { ReactElement, useEffect, useState, useRef, RefObject } from "react";
+import React, { ReactElement, useEffect, useState, useRef } from "react";
 import { BlockAttributes } from "@staffbase/widget-sdk";
-import { renderWidgets } from "./widgetService";
 import { fetchArticles } from "@/services/apiService";
-import type ArticleData from "@/types/ArticleData";
+import type { ArticleData } from "@/types/ArticleData";
+import ArticleModal from "./components/ArticleModal";
 import "./staffbase-example-render-widget.css";
-
-// Define the API URL with error handling
-const getApiUrl = (): string => {
-  const apiUrl = process.env.REACT_APP_API_URL;
-  if (!apiUrl) {
-    throw new Error('REACT_APP_API_URL is not defined in .env file');
-  }
-  return apiUrl;
-};
+import "./components/ArticleModal.css";
+import { renderWidgets } from "./widgetService";
 
 /**
- * Widget Props Interface
+ * Props interface for the widget
+ * @interface StaffbaseExampleRenderWidgetProps
  */
 export interface StaffbaseExampleRenderWidgetProps extends BlockAttributes {
   channel: string;
@@ -23,9 +17,36 @@ export interface StaffbaseExampleRenderWidgetProps extends BlockAttributes {
 }
 
 /**
- * Article Content Component
+ * Props for the ArticleList component
+ * @interface ArticleListProps
  */
-const ArticleContent: React.FC<{ article: ArticleData; contentLanguage: string }> = ({ article, contentLanguage }) => {
+interface ArticleListProps {
+  articles: ArticleData[];
+  contentLanguage: string;
+  selectedArticleId: string | null;
+  onArticleClick: (article: ArticleData) => void;
+}
+
+/**
+ * Props for the ArticleContent component
+ * @interface ArticleContentProps
+ */
+interface ArticleContentProps {
+  article: ArticleData;
+  contentLanguage: string;
+  onOpenModal: () => void;
+}
+
+/**
+ * Component to display the article content
+ * @param {ArticleContentProps} props - The component props
+ * @returns {ReactElement} The article content component
+ */
+const ArticleContent: React.FC<ArticleContentProps> = ({
+  article,
+  contentLanguage,
+  onOpenModal
+}) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [isRendering, setIsRendering] = useState(false);
   const content = article.contents[contentLanguage] || article.contents[Object.keys(article.contents)[0]];
@@ -35,7 +56,7 @@ const ArticleContent: React.FC<{ article: ArticleData; contentLanguage: string }
 
     setIsRendering(true);
     try {
-      await renderWidgets(contentRef as RefObject<HTMLDivElement>);
+      await renderWidgets(contentRef);
     } catch (error) {
       console.error('Error rendering widgets:', error);
     } finally {
@@ -53,6 +74,12 @@ const ArticleContent: React.FC<{ article: ArticleData; contentLanguage: string }
         >
           {isRendering ? 'Rendering...' : 'Force Render Widgets'}
         </button>
+        <button
+          className="open-modal-button"
+          onClick={onOpenModal}
+        >
+          Open in Modal
+        </button>
       </div>
       <div className="article-header">
         <h3>{content.title}</h3>
@@ -66,74 +93,139 @@ const ArticleContent: React.FC<{ article: ArticleData; contentLanguage: string }
   );
 };
 
-export const StaffbaseExampleRenderWidget = ({ channel, contentLanguage }: StaffbaseExampleRenderWidgetProps): ReactElement => {
+/**
+ * Component to display the list of articles
+ * @param {ArticleListProps} props - The component props
+ * @returns {ReactElement} The article list component
+ */
+const ArticleList: React.FC<ArticleListProps> = ({
+  articles,
+  contentLanguage,
+  selectedArticleId,
+  onArticleClick,
+}) => (
+  <div className="articles-list">
+    {articles.map(article => {
+      const content = article.contents[contentLanguage] ||
+                    article.contents[Object.keys(article.contents)[0]];
+      const isSelected = selectedArticleId === article.id;
+
+      return (
+        <div
+          key={article.id}
+          className={`article-item ${isSelected ? 'selected' : ''}`}
+          onClick={() => onArticleClick(article)}
+        >
+          <h3>{content.title}</h3>
+          <p>{content.teaser}</p>
+          <div className="article-meta">
+            <div className="meta-left">
+              {article.published && (
+                <span>Published: {new Date(article.published).toLocaleDateString()}</span>
+              )}
+            </div>
+            <div className="meta-right">
+              <span className="acknowledgement-status">
+                {article.acknowledgements?.isAcknowledged ? '✓ Acknowledged' : '○ Not Acknowledged'}
+              </span>
+            </div>
+          </div>
+        </div>
+      );
+    })}
+    {articles.length === 0 && (
+      <div className="no-articles">
+        No articles found
+      </div>
+    )}
+  </div>
+);
+
+/**
+ * Main widget component
+ * @param {StaffbaseExampleRenderWidgetProps} props - The component props
+ * @returns {ReactElement} The main widget component
+ */
+export const StaffbaseExampleRenderWidget = ({
+  channel,
+  contentLanguage,
+}: StaffbaseExampleRenderWidgetProps): ReactElement => {
+  // State declarations
   const [articles, setArticles] = useState<ArticleData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAcknowledged, setShowAcknowledged] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<ArticleData | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Use the channel prop directly, fallback to default if not provided
+  // Channel ID with fallback
   const CHANNEL_ID = channel || "679a3e8122f1d760e63ef502";
 
+  /**
+   * Loads and processes articles from the API
+   */
+  const loadArticles = async (): Promise<void> => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const fetchedArticles = await fetchArticles(CHANNEL_ID);
+      const sortedArticles = sortArticlesByDate(fetchedArticles);
+      const filteredArticles = filterArticlesByAcknowledgement(sortedArticles, showAcknowledged);
+
+      setArticles(filteredArticles);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred while fetching articles';
+      console.error('Error loading articles:', err);
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Sorts articles by published date
+   * @param {ArticleData[]} articles - Articles to sort
+   * @returns {ArticleData[]} Sorted articles
+   */
+  const sortArticlesByDate = (articles: ArticleData[]): ArticleData[] => {
+    return articles.sort((a, b) => {
+      const dateA = a.published ? new Date(a.published).getTime() : 0;
+      const dateB = b.published ? new Date(b.published).getTime() : 0;
+      return dateB - dateA;
+    });
+  };
+
+  /**
+   * Filters articles based on acknowledgement status
+   * @param {ArticleData[]} articles - Articles to filter
+   * @param {boolean} showAcknowledged - Whether to show acknowledged articles
+   * @returns {ArticleData[]} Filtered articles
+   */
+  const filterArticlesByAcknowledgement = (
+    articles: ArticleData[],
+    showAcknowledged: boolean
+  ): ArticleData[] => {
+    return articles.filter((article) =>
+      showAcknowledged ? article.acknowledgements?.isAcknowledged : !article.acknowledgements?.isAcknowledged
+    );
+  };
+
+  // Load articles on mount and when filters change
   useEffect(() => {
-    const loadArticles = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Check API URL configuration first
-        try {
-          getApiUrl();
-        } catch {
-          throw new Error('Configuration Error: REACT_APP_API_URL is not defined in .env file. Please set up your environment variables correctly.');
-        }
-
-        const fetchedArticles = await fetchArticles(CHANNEL_ID);
-
-        // Sort articles by published date (newest first)
-        const sortedArticles = fetchedArticles.sort((a: ArticleData, b: ArticleData) => {
-          const dateA = a.published ? new Date(a.published).getTime() : 0;
-          const dateB = b.published ? new Date(b.published).getTime() : 0;
-          return dateB - dateA;
-        });
-
-        // Filter based on showAcknowledged state
-        const filteredArticles = sortedArticles.filter((article: ArticleData) =>
-          showAcknowledged ? article.acknowledgements?.isAcknowledged : !article.acknowledgements?.isAcknowledged
-        );
-
-        setArticles(filteredArticles);
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'An error occurred while fetching articles';
-        console.error('Error loading articles:', err);
-        setError(errorMessage);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadArticles();
   }, [showAcknowledged, CHANNEL_ID]);
 
-  // Handle toggle change
-  const handleToggleChange = () => {
-    setShowAcknowledged(!showAcknowledged);
-    setSelectedArticle(null); // Clear selected article when toggling
-  };
-
-  // Handle article selection
-  const handleArticleClick = (article: ArticleData) => {
+  /**
+   * Handles article selection
+   * @param {ArticleData} article - The selected article
+   */
+  const handleArticleClick = (article: ArticleData): void => {
     setSelectedArticle(selectedArticle?.id === article.id ? null : article);
   };
 
-  if (loading) {
-    return <div>Loading articles...</div>;
-  }
-
-  if (error) {
-    return <div>Error: {error}</div>;
-  }
+  if (loading) return <div>Loading articles...</div>;
+  if (error) return <div>Error: {error}</div>;
 
   return (
     <div className="articles-widget">
@@ -144,7 +236,7 @@ export const StaffbaseExampleRenderWidget = ({ channel, contentLanguage }: Staff
             <input
               type="checkbox"
               checked={showAcknowledged}
-              onChange={handleToggleChange}
+              onChange={() => setShowAcknowledged(!showAcknowledged)}
             />
             <span className="toggle-slider"></span>
           </label>
@@ -153,51 +245,34 @@ export const StaffbaseExampleRenderWidget = ({ channel, contentLanguage }: Staff
           </span>
         </div>
       </div>
-      <div className="articles-container">
-        <div className="articles-list">
-          {articles.map(article => {
-            const content = article.contents[contentLanguage] ||
-                          article.contents[Object.keys(article.contents)[0]];
-            const isSelected = selectedArticle?.id === article.id;
 
-            return (
-              <div
-                key={article.id}
-                className={`article-item ${isSelected ? 'selected' : ''}`}
-                onClick={() => handleArticleClick(article)}
-              >
-                <h3>{content.title}</h3>
-                <p>{content.teaser}</p>
-                <div className="article-meta">
-                  <div className="meta-left">
-                    {article.published && (
-                      <span>Published: {new Date(article.published).toLocaleDateString()}</span>
-                    )}
-                  </div>
-                  <div className="meta-right">
-                    <span className="acknowledgement-status">
-                      {article.acknowledgements?.isAcknowledged ? '✓ Acknowledged' : '○ Not Acknowledged'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-          {articles.length === 0 && (
-            <div className="no-articles">
-              No {showAcknowledged ? 'acknowledged' : 'unacknowledged'} articles found
-            </div>
-          )}
-        </div>
+      <div className="articles-container">
+        <ArticleList
+          articles={articles}
+          contentLanguage={contentLanguage}
+          selectedArticleId={selectedArticle?.id || null}
+          onArticleClick={handleArticleClick}
+        />
+
         <div className="article-content-container">
           {selectedArticle && (
             <ArticleContent
               article={selectedArticle}
               contentLanguage={contentLanguage}
+              onOpenModal={() => setIsModalOpen(true)}
             />
           )}
         </div>
       </div>
+
+      {selectedArticle && (
+        <ArticleModal
+          article={selectedArticle}
+          contentLanguage={contentLanguage}
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+        />
+      )}
     </div>
   );
 };

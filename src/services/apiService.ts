@@ -1,4 +1,4 @@
-import type ArticleData from '@/types/ArticleData'
+import { ArticleData } from '@/types/ArticleData'
 import { Channel } from '@/types/Channel'
 import type DropdownOption from '@/types/DropdownOption'
 
@@ -27,16 +27,16 @@ const fetchAPI = async <T>(url: string): Promise<T> => {
  * General function to fetch all data from a given API URL with pagination.
  * @template T The type of the items to be returned (e.g., ArticleData, DropdownOption).
  * @param {string} baseUrl - The base API URL to fetch data from (without limit and offset parameters).
- * @param {(item: any) => T | null} [mapFunction] - An optional mapping function to transform each item.
+ * @param {(item: unknown) => T | null} [mapFunction] - An optional mapping function to transform each item.
  * @param {number} [limit] - The maximum number of items to fetch per request (default is 50).
  * @returns {Promise<T[]>} A promise that resolves to a list of items of type T.
  */
 const fetchAllData = async <T>(
   baseUrl: string,
-  mapFunction?: (item: any) => T | null, // Optional mapping function
+  mapFunction?: (item: unknown) => T | null,
   limit: number = 50,
 ): Promise<T[]> => {
-  const results: T[] = [] // Store results dynamically based on type T
+  const results: T[] = []
 
   // Initialize the offset and total
   let offset = 0
@@ -63,7 +63,7 @@ const fetchAllData = async <T>(
         ? data.data
             .map(mapFunction)
             .filter((item: T | null): item is T => item !== null)
-        : data.data
+        : (data.data as T[])
 
       // Add the mapped data to the results
       results.push(...mappedData)
@@ -89,7 +89,8 @@ const fetchAllData = async <T>(
 export const fetchChannels = async (): Promise<DropdownOption[]> => {
   const baseUrl = `${process.env.REACT_APP_API_URL}/channels?contentType=articles`
 
-  return fetchAllData<DropdownOption>(baseUrl, (channel: Channel) => {
+  return fetchAllData<DropdownOption>(baseUrl, (item: unknown) => {
+    const channel = item as Channel
     // Get the title from the localization object
     const title =
       channel?.config?.localization?.[
@@ -114,18 +115,17 @@ export const fetchChannel = async (channelId: string): Promise<Channel> => {
 }
 
 /**
- * Fetches the articles based on the selected channel.
- * @param {string} channelId - The selected channel's ID.
- * @returns {Promise<ArticleData[]>} - A promise that resolves to a list of article options.
+ * Fetches articles from the API for a given channel
+ * @param {string} channelId - The ID of the channel to fetch articles from
+ * @returns {Promise<ArticleData[]>} A promise that resolves to an array of articles
  */
-export const fetchArticles = async (
-  channelId: string,
-): Promise<ArticleData[]> => {
-  const url = `${process.env.REACT_APP_API_URL}/client/channels/${channelId}/posts`
+export const fetchArticles = async (channelId: string): Promise<ArticleData[]> => {
+  const baseUrl = `${process.env.REACT_APP_API_URL}/channels/${channelId}/articles`
 
-  return fetchAllData<ArticleData>(url, (item: ArticleData) =>
-    determinePublicationStatus(item) ? item : null,
-  )
+  return fetchAllData<ArticleData>(baseUrl, (item: unknown) => {
+    const article = item as ArticleData
+    return determinePublicationStatus(article) ? article : null
+  })
 }
 
 /**

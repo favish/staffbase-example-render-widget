@@ -138,6 +138,7 @@ input:checked + .toggle-slider:before {
   justify-content: flex-end;
   margin: 10px;
   padding-bottom: 20px;
+  gap: 10px;
 }
 
 .render-widgets-button {
