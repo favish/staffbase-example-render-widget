@@ -97,10 +97,12 @@ We seek clarification and support on the following:
 
 ---
 
+### Additional Request: TypeScript Types in the Plugin Library
+
+Furthermore, we would like the plugin library to include TypeScript types for API responses such as "Article", "Channel", and similar entities, along with their available fields. This would spare developers from having to manually create these types, ensuring they remain up-to-date with Staffbase’s changes.
+
+By providing these types, we could easily detect if a field has been removed or modified through a simple type check, enhancing code robustness and maintainability.
+
 ### Conclusion
 
 Addressing these challenges—dynamic content rendering and React hooks in config widgets—would significantly enhance our ability to deliver flexible, interactive, and robust solutions to clients. We look forward to your guidance, whether through official APIs, documentation, or recommended practices, to resolve these issues effectively.
-
-## Building the form for configuration
-
-This project uses [react-jsonschema-form](https://rjsf-team.github.io/react-jsonschema-form/) for configuring the widget properties. For more information consult their [documentation](https://rjsf-team.github.io/react-jsonschema-form/docs/)
