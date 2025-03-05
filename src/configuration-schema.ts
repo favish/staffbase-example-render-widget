@@ -12,30 +12,57 @@
  */
 
 import { UiSchema } from "@rjsf/utils";
-import { JSONSchema7 } from "json-schema";
+import { JSONSchema7, JSONSchema7Definition } from "json-schema";
 import SelectChannel from "./components/config/SelectChannel";
+import ProblematicSelectExample from "./components/config/ProblematicSelectExample";
+
+// Configuration properties
+const baseProperties: { [key: string]: JSONSchema7Definition } = {
+  channel: {
+    type: "string" as const,
+    title: "Channel",
+  },
+};
+
+// Add problematic example only if enabled
+if (process.env.REACT_APP_ENABLE_PROBLEMATIC_SELECT_EXAMPLE === "true") {
+  baseProperties.problematicExample = {
+    type: "string" as const,
+    title: "Problematic Example",
+    description: "This is an example that demonstrates issues with React hooks",
+  };
+}
 
 /**
  * schema used for generation of the configuration dialog
  * see https://rjsf-team.github.io/react-jsonschema-form/docs/ for documentation
  */
 export const configurationSchema: JSONSchema7 = {
-  properties: {
-    channel: {
-      type: "string",
-      title: "Channel",
-    },
-  },
-  required: ["channel"],
+  type: "object",
+  properties: baseProperties,
+  required: process.env.REACT_APP_ENABLE_PROBLEMATIC_SELECT_EXAMPLE === "true"
+    ? ["channel", "problematicExample"]
+    : ["channel"],
 };
 
-/**
- * schema to add more customization to the form's look and feel
- * @see https://rjsf-team.github.io/react-jsonschema-form/docs/api-reference/uiSchema
- */
-export const uiSchema: UiSchema = {
+// Base UI Schema
+const baseUiSchema: UiSchema = {
   channel: {
     "ui:widget": SelectChannel,
     "ui:help": "Select the channel to display the content",
   },
 };
+
+// Add problematic example UI schema if enabled
+if (process.env.REACT_APP_ENABLE_PROBLEMATIC_SELECT_EXAMPLE === "true") {
+  baseUiSchema.problematicExample = {
+    "ui:widget": ProblematicSelectExample,
+    "ui:help": "This widget demonstrates problematic patterns with React hooks",
+  };
+}
+
+/**
+ * schema to add more customization to the form's look and feel
+ * @see https://rjsf-team.github.io/react-jsonschema-form/docs/api-reference/uiSchema
+ */
+export const uiSchema: UiSchema = baseUiSchema;
